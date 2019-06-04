@@ -1,0 +1,118 @@
+(program GCD
+
+  (config
+
+    (data_width 16)
+    (regs 4)
+    (states 7)
+
+    (inputs
+      (input 0 (to_reg 0))
+      (input 1 (to_reg 1))
+    )
+    (outputs
+      (output 0 (from_reg 2))
+      (output 1 (from_reg 3))
+    )
+
+    (status_bits
+      (status_bit 0 (reg 0) (pos 0))
+      (status_bit 1 (reg 1) (pos 0))
+    )
+
+    (alus
+      (alu 0 (ops nop add sub eq))
+      (alu 1 (ops nop add sub gt))
+    )
+
+    (spms
+      (spm 0
+        (nb_bits_addr  8)
+        (control_reg   0)
+        (address_reg   1)
+        (input_reg     2)
+        (output_reg    3)
+      )
+      (spm 1
+        (nb_bits_addr  9)
+        (control_reg   4)
+        (address_reg   5)
+        (input_reg     6)
+        (output_reg    7)
+      )
+    )
+  )
+
+  (controler
+    (state 0
+      (spec "datapath puts a~i(0) to r0 || b~i(1) to r1")
+      (control
+        (alu 0 nop r0 r0 r0)
+        (alu 1 nop r0 r0 r0)
+        (reg 0 0b010)
+        (reg 1 0b010)
+        (reg 2 0b000)
+        (reg 3 0b000)
+      )
+      (jump 1)
+
+    )
+
+    (state 1
+      (spec "test r2=(a==b) || r3=(b>a)")
+      (jump 2)
+      (control
+        (alu 0 eq r0 r1 r2)
+        (alu 1 gt r1 r0 r3)
+        (reg 2 0b110)
+        (reg 3 0b110)
+      )
+    )
+
+    (state 2
+      (spec "test r2(0)~>status(0)=1?. If yes go to state 6 || reset r2")
+      (jump 6
+        (status_mask 0b0001)
+        (default 3)
+      )
+      (control
+        (reg 2 0b001 )
+      )
+    )
+
+    (state 3
+      (spec "test r3(0~>status(1)=1?. If yes go to state 5")
+      (jump 5
+        (status_mask 0b0010)
+        (default 4)
+      )
+    )
+
+    (state 4
+      (spec "compute r0=r0-r1 || go to state 1")
+      (jump 1)
+      (control
+        (alu 0 sub r0 r1 r0)
+        (reg 0 0b110)
+      )
+    )
+
+    (state 5
+      (spec "compute r1=r1-r0 || go to state 1")
+      (jump 1)
+      (control
+        (alu 0 sub r1 r0 r1)
+        (reg 1 0b110)
+      )
+    )
+
+    (state 6
+      (spec "write r0 to r2~>output0 || go to IDLE")
+      (control
+        (alu 0 add r1 r2 r2)
+        (reg 2 0b110)
+      )
+      (done true)
+    )
+  )
+)
