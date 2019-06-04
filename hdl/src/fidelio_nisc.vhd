@@ -83,8 +83,10 @@ begin
   ram_en      <= external_ce or pfsm_to_bram_en;
   ram_we      <= external_we;
   ram_address <= std_logic_vector(external_address(2 downto 0)) when external_ce='1' else pfsm_to_bram_address;
-  ram_datain  <= std_logic_vector(external_datain)  when external_ce='1' else (others=>'0');
-  external_dataout <= ram_dataout;
+  ram_datain  <= std_logic_vector(external_datain)              when external_ce='1' else (others=>'0');
+  external_dataout  <= ram_dataout;
+  bram_to_pfsm_code <= ram_dataout;
+
   -- -------------- D A T A P A T H ---------------
   datapath : entity fidelio_lib.fidelio_datapath
     port map(

@@ -32,18 +32,21 @@ begin
 
   configure_inputs_to_reg: process(inputs,regs_r,spm_result)
   begin
-    for r in 0 to NB_REGS-11 loop
+    for r in 0 to NB_REGS-1 loop
+      prim_source_c(r) <= regs_r(r);--default;
       for i in 0 to NB_INPUTS-1 loop
         if CONFIG.input(i).to_reg(r)='1' then
           prim_source_c(r) <= inputs(i);
         else
-          for s in 0 to NB_SCRATCHPAD_MEMS-1 loop
-            if CONFIG.scratchpads(s).output_reg=r then
-              prim_source_c(r) <= spm_result(s).dataout;
-            else
-              prim_source_c(r) <= regs_r(r);
-            end if;
-          end loop;
+          if HAS_SCRATCHPADS then
+            for s in 0 to NB_SCRATCHPAD_MEMS-1 loop
+              if CONFIG.scratchpads(s).output_reg=r then
+                prim_source_c(r) <= spm_result(s).dataout;
+              else
+                prim_source_c(r) <= regs_r(r);
+              end if;
+            end loop;
+          end if;
         end if;
       end loop;
     end loop;
@@ -51,7 +54,7 @@ begin
 
   write_reg_sel_logic :process(control,to_regs_c,prim_source_c)
   begin
-    for i in 0 to NB_REGS-11 loop
+    for i in 0 to NB_REGS-1 loop
       if control.reg(i).feedback='1' then
         regs_source_c(i) <= to_regs_c(i);
       else
@@ -82,10 +85,10 @@ begin
       alu_b(i) <= (others=>'0');--default
       alu_op(i) <= control.alu(i).op;
       loop_reg:for j in 0 to NB_REGS-1 loop
-        if control.alu(i).a_fed_by_reg(j)='1' then
+        if control.alu(i).a_fed_by_reg=to_unsigned(j,NB_BITS_PER_REG_ID) then
           alu_a(i) <= regs_r(j);
         end if;
-        if control.alu(i).b_fed_by_reg(j)='1' then
+        if control.alu(i).b_fed_by_reg=to_unsigned(j,NB_BITS_PER_REG_ID) then
           alu_b(i) <= regs_r(j);
         end if;
       end loop;
@@ -103,11 +106,12 @@ begin
       );
   end generate;
 
-  interconnect_results: process(control,alu_f)
+  interconnect_results: process(control,regs_r,alu_f)
   begin
     for i in 0 to NB_REGS-1 loop
+      to_regs_c(i) <= regs_r(i);--default
       for j in 0 to NB_ALUS-1 loop
-        test: if control.alu(j).write_to_reg(i)='1' then
+        if control.alu(j).write_to_reg=to_unsigned(i,NB_BITS_PER_REG_ID) then
           to_regs_c(i) <= alu_f(j);
         end if;
       end loop;
@@ -126,9 +130,13 @@ begin
   end process;
 
   status_wiring : process(regs_r)
+    variable reg_id  : natural range 0 to NB_REGS-1;
+    variable bit_pos : natural range 0 to DATA_WIDTH-1;
   begin
     for i in 0 to NB_STATUS_BITS-1 loop
-      status(i) <= regs_r(CONFIG.status_bits(i).reg)(CONFIG.status_bits(i).pos);
+      reg_id    := CONFIG.status_bits(i).reg;
+      bit_pos   := CONFIG.status_bits(i).pos;
+      status(i) <= regs_r(reg_id)(bit_pos);
     end loop;
   end process;
 

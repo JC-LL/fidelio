@@ -42,6 +42,9 @@ architecture rtl of fidelio_pfsm is
 
   signal state_r,state_c     : state_rt;
   signal control_r,control_c : program_word_rt;
+  signal bram_en_c           : std_logic;
+  signal bram_address_c      : program_addr;
+
 begin
 
   reg_p: process(reset_n,clk)
@@ -87,8 +90,15 @@ begin
       when others =>
         null;
     end case;
-    state_c <= state_v;
-    control_c <= control_v;
+
+    state_c        <= state_v;
+    control_c      <= control_v;
+    bram_en_c      <= bram_en_v;
+    bram_address_c <= bram_address_v;
+
   end process;
 
+  bram_en      <= bram_en_c;
+  bram_address <= bram_address_c;
+  control      <= control_c.control;
 end rtl;

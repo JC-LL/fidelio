@@ -13,9 +13,11 @@ package config_package is
   constant NB_ALUS            : natural :=  2;
   constant NB_STATUS_BITS     : natural :=  2;
   constant NB_STATES          : natural :=  7;
-  constant NB_SCRATCHPAD_MEMS : natural :=  1;
+  constant HAS_SCRATCHPADS    : boolean :=  false;
+  constant NB_SCRATCHPAD_MEMS : natural :=  1;-- > 0 !
   --
   constant NB_BITS_PROGRAM_ADDR : natural := integer(ceil(log2(real(NB_STATES))));
+  constant NB_BITS_PER_REG_ID   : natural := integer(ceil(log2(real(NB_REGS))));
 
   type inputs_at is array(0 to NB_INPUTS-1) of std_logic_vector(DATA_WIDTH-1 downto 0);
   type outputs_at is array(0 to NB_OUTPUTS-1) of std_logic_vector(DATA_WIDTH-1 downto 0);
@@ -45,19 +47,19 @@ package config_package is
 
   type alu_control is record
     op           : alu_op_t;
-    a_fed_by_reg : std_logic_vector(NB_REGS-1 downto 0);
-    b_fed_by_reg : std_logic_vector(NB_REGS-1 downto 0);
-    write_to_reg : std_logic_vector(NB_REGS-1 downto 0);
+    a_fed_by_reg : unsigned(NB_BITS_PER_REG_ID-1 downto 0);
+    b_fed_by_reg : unsigned(NB_BITS_PER_REG_ID-1 downto 0);
+    write_to_reg : unsigned(NB_BITS_PER_REG_ID-1 downto 0);
   end record;
 
   constant DEFAULT_ALU_CONTROL_T : alu_control :=(
     op => NOP,
-    a_fed_by_reg => (others=>'0'),
-    b_fed_by_reg => (others=>'0'),
-    write_to_reg => (others=>'0')
+    a_fed_by_reg => to_unsigned(0,NB_BITS_PER_REG_ID),
+    b_fed_by_reg => to_unsigned(0,NB_BITS_PER_REG_ID),
+    write_to_reg => to_unsigned(0,NB_BITS_PER_REG_ID)
   );
 
-  type alus_control_t is array(0 to NB_REGS-1) of alu_control;
+  type alus_control_t is array(0 to NB_ALUS-1) of alu_control;
 
   constant DEFAULT_ALUS_CONTROL_T : alus_control_t :=(
     others => DEFAULT_ALU_CONTROL_T
@@ -181,6 +183,7 @@ package config_package is
   type program_word_rt is record
     status_mask  : std_logic_vector(NB_STATUS_BITS-1 downto 0);
     jump_address : natural range 0 to NB_STATES-1;
+    done         : std_logic;
     jump_default : std_logic;
     control      : control_rt;
   end record;
@@ -189,14 +192,15 @@ package config_package is
     (
       status_mask  => (others=>'0'),
       jump_address => 0,
+      done         => '0',
       jump_default => '1',--current state
       control      => DEFAULT_CONTROL_RT
     );
   --======= conversion functions
 
   -- from RAM bits to Symbolic control word.
-  function bits_to_symbolic_control(bits : program_word) return program_word_rt;
-
+  function  bits_to_symbolic_control(bits : program_word) return program_word_rt;
+  procedure print(word : program_word_rt);
 
   --======== configuration examples =========
   constant CONFIG_GCD : config_rt :=(

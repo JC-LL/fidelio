@@ -57,7 +57,13 @@ architecture bhv of fidelio_ip_tb is
 
   signal go          : std_logic;
   signal done        : std_logic;
-  signal inputs      : inputs_at;
+
+  constant STIMULI : inputs_at :=(
+    0 => std_logic_vector(to_unsigned(42,DATA_WIDTH)),
+    1 => std_logic_vector(to_unsigned(24,DATA_WIDTH))
+  );
+
+  signal inputs      : inputs_at := STIMULI;
   signal outputs     : outputs_at;
 
 begin
@@ -103,6 +109,8 @@ begin
       report " - NB_ALUS                        = " & str(NB_ALUS);
       report " - SINGLE_ALU_CONTROL_SIZE        = " & str(SINGLE_ALU_CONTROL_SIZE);
       report "NB_REGS*3                         = " & str(NB_REGS*3);
+      report " - NB_REGS                        = " & str(NB_REGS);
+      report " - NB_BITS_PER_REG_ID             = " & str(NB_BITS_PER_REG_ID);
       report "------------------------------------";
       report "NB_BITS_PROGRAM_WORD = " & str(NB_BITS_PROGRAM_WORD);
       report "------------------------------------";
@@ -172,6 +180,30 @@ begin
       end if;
     end procedure;
 
+    procedure start_nisc is
+    begin
+      report "starting NISC";
+      bfm_write(x"06",x"00000001");
+    end procedure;
+
+    procedure wait_nisc_done is
+      variable count : natural;
+      variable done : boolean :=false;
+    begin
+      report "waiting for NISC completion";
+      while done=false loop
+        count:=count+1;
+        bfm_read(x"06");
+        done := bus_s_dout(0)='1';
+        if (count mod 10=0) then
+          report "#read status : " & str(count);
+        end if;
+        if count > 100 then
+          report "aborting !" severity failure;
+        end if;
+      end loop;
+    end procedure;
+
    begin
      report "running testbench for fidelio_nisc(rtl)";
      print_config;
@@ -181,8 +213,9 @@ begin
      report "applying stimuli...";
      download("program.hex");
 
-     wait_cycles(10);
-
+     wait_cycles(20);
+     start_nisc;
+     wait_nisc_done;
      report "end of simulation";
      running <=false;
      wait;
