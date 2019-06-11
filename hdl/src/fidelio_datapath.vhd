@@ -110,11 +110,14 @@ begin
   begin
     for i in 0 to NB_REGS-1 loop
       to_regs_c(i) <= regs_r(i);--default
-      for j in 0 to NB_ALUS-1 loop
-        if control.alu(j).write_to_reg=to_unsigned(i,NB_BITS_PER_REG_ID) then
-          to_regs_c(i) <= alu_f(j);
-        end if;
-      end loop;
+      if control.reg(i).feedback='1' then
+        loop_alu:for j in 0 to NB_ALUS-1 loop
+          if control.alu(j).write_to_reg=to_unsigned(i,NB_BITS_PER_REG_ID) then
+            to_regs_c(i) <= alu_f(j);
+            exit loop_alu;
+          end if;
+        end loop;
+      end if;
     end loop;
   end process;
 
@@ -164,8 +167,5 @@ begin
     spm_ctrl(s).address<= regs_r(CONFIG.scratchpads(s).address_reg);
     spm_ctrl(s).datain <= regs_r(CONFIG.scratchpads(s).input_reg);
   end generate;
-
-  -- SPM I/O and control :
-
 
 end arch_v0;

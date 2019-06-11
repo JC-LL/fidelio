@@ -17,24 +17,31 @@ package body config_package is
     variable msb,lsb   : natural;
   begin
     msb:=NB_BITS_PROGRAM_WORD-1;
+    lsb:=msb;
+    word.conditional := bits(lsb);
+    report "cond?     " & str(msb) & ".." & str(lsb) & " : " & str(word.conditional);
+
+
+    msb:=lsb-1;
     lsb:=msb-NB_STATUS_BITS+1;
-    report "mask      " & str(msb) & ".." & str(lsb);
     word.status_mask := bits(msb downto lsb);
+    report "mask      " & str(msb) & ".." & str(lsb) & " : " & str(word.status_mask);
 
     msb:=lsb-1;
     lsb:=msb-NB_BITS_PROGRAM_ADDR+1;
-    report "j@        " & str(msb) & ".." & str(lsb);
     word.jump_address:= to_integer(unsigned(bits(msb downto lsb)));
+    report "j@        " & str(msb) & ".." & str(lsb) & " : " & str(word.jump_address);
+
 
     msb:=lsb-1;
     lsb:=msb-1+1;
-    report "done      " & str(msb) & ".." & str(lsb);
-    word.jump_default:=bits(lsb);
+    word.done:=bits(lsb);
+    report "done      " & str(msb) & ".." & str(lsb) & " : " & str(word.done);
 
     msb:=lsb-1;
     lsb:=msb-1+1;
-    report "jdef      " & str(msb) & ".." & str(lsb);
     word.jump_default:=bits(lsb);
+    report "jdef      " & str(msb) & ".." & str(lsb)& " : " & str(word.jump_default);
 
     for alu in 0 to NB_ALUS-1 loop
       msb:=lsb-1;
@@ -45,20 +52,23 @@ package body config_package is
       alus_ctrl(alu).op :=alu_op_t'VAL(op_id);
       report "OP   (" & str(alu) & ")= " &  alu_op_t'image(alus_ctrl(alu).op);
 
-      msb:=lsb-1;
-      lsb:=msb-NB_BITS_PER_REG_ID+1;
-      report "a        " & str(msb) & ".." & str(lsb);
-      alus_ctrl(alu).a_fed_by_reg:=unsigned(bits(msb downto lsb));
+      msb := lsb-1;
+      lsb := msb-NB_BITS_PER_REG_ID+1;
+      alus_ctrl(alu).a_fed_by_reg := unsigned(bits(msb downto lsb));
+      report "a        " & str(msb) & ".." & str(lsb) & " : " & str(alus_ctrl(alu).a_fed_by_reg);
+
 
       msb:=lsb-1;
       lsb:=msb-NB_BITS_PER_REG_ID+1;
-      report "b        " & str(msb) & ".." & str(lsb);
       alus_ctrl(alu).b_fed_by_reg:=unsigned(bits(msb downto lsb));
+      report "b        " & str(msb) & ".." & str(lsb)& " : " & str(alus_ctrl(alu).b_fed_by_reg);
+
 
       msb:=lsb-1;
       lsb:=msb-NB_BITS_PER_REG_ID+1;
-      report "dest     " & str(msb) & ".." & str(lsb);
       alus_ctrl(alu).write_to_reg:=unsigned(bits(msb downto lsb));
+      report "dest     " & str(msb) & ".." & str(lsb)& " : " & str(alus_ctrl(alu).write_to_reg);
+
     end loop;
 
     control.alu := alus_ctrl;

@@ -36,7 +36,7 @@ architecture RTL of fidelio_ip is
   --
   signal done : std_logic;
   signal ram_dataout   : std_logic_vector(NB_BITS_PROGRAM_WORD-1 downto 0);
-  signal external_data : std_logic_vector(38 downto 0);
+  signal external_data : std_logic_vector(39 downto 0);
 begin
 
   regif_inst : entity work.fidelio_ip_reg
@@ -70,7 +70,7 @@ begin
       outputs          => outputs
     );
 
-  external_data <= regs.ram_datain_b15_b8.value(6 downto 0) & regs.ram_datain_b7_b0.value;
+  external_data <= regs.ram_datain_b15_b8.value(7 downto 0) & regs.ram_datain_b7_b0.value;
 
   sampling.ram_dataout_b7_b0_value              <= ram_dataout(31 downto 0);
   --sampling.ram_dataout_b15_b8_value(7 downto 0) <= ram_dataout(39 downto 32);

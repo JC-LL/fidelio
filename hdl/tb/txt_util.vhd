@@ -1,5 +1,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
 use std.textio.all;
 
 
@@ -20,6 +22,9 @@ package txt_util is
 
     -- converts std_logic_vector into a string (binary base)
     function str(slv: std_logic_vector) return string;
+
+    -- converts unsigned into a string (binary base)
+    function str(slv: unsigned) return string;
 
     -- converts boolean into a string
     function str(b: boolean) return string;
@@ -156,6 +161,18 @@ package body txt_util is
    --  have an integer range)
 
    function str(slv: std_logic_vector) return string is
+     variable result : string (1 to slv'length);
+     variable r : integer;
+   begin
+     r := 1;
+     for i in slv'range loop
+        result(r) := chr(slv(i));
+        r := r + 1;
+     end loop;
+     return result;
+   end str;
+
+   function str(slv: unsigned) return string is
      variable result : string (1 to slv'length);
      variable r : integer;
    begin

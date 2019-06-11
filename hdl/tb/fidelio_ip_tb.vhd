@@ -171,7 +171,7 @@ begin
           -- write in reg 0x1 : datain of RAM
           bfm_write(x"01",value(31 downto 0));
           -- write in reg 0x2 : datain of RAM
-          bfm_write(x"02",x"000000" & '0' & value(38 downto 32));
+          bfm_write(x"02",x"000000" & value(39 downto 32));
           -- write in reg 0x3 : control of RAM
           bfm_write(x"05",x"00000003");-- 0...011" (ce,we)
         end loop;
@@ -198,7 +198,7 @@ begin
         if (count mod 10=0) then
           report "#read status : " & str(count);
         end if;
-        if count > 100 then
+        if count > 20 then
           report "aborting !" severity failure;
         end if;
       end loop;

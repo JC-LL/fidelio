@@ -44,7 +44,11 @@ architecture rtl of fidelio_pfsm is
   signal control_r,control_c : program_word_rt;
   signal bram_en_c           : std_logic;
   signal bram_address_c      : program_addr;
-
+  --
+  signal jump_address_c      : program_addr;
+  signal jump_cond_c         : std_logic_vector(NB_STATUS_BITS-1 downto 0);
+  signal status_mask_c       : std_logic_vector(NB_STATUS_BITS-1 downto 0);
+  signal default_jump_bit_d : std_logic;
 begin
 
   reg_p: process(reset_n,clk)
@@ -58,18 +62,31 @@ begin
     end if;
   end process;
 
-  comb_logic_p : process(go,state_r,bram_code)
+  comb_logic_p : process(go,state_r,bram_code,status)
     variable state_v : state_rt;
     variable code_v  : program_word;
     variable control_v : program_word_rt;
     variable bram_en_v      : std_logic;
     variable bram_address_v : program_addr;
+    constant STATUS_ZERO :  std_logic_vector(NB_STATUS_BITS-1 downto 0) := std_logic_vector(to_unsigned(0,NB_STATUS_BITS));
+    variable jump_cond : std_logic_vector(NB_STATUS_BITS-1 downto 0);
+    variable jump_address : program_addr;
+    variable default_jump_bit : std_logic;
+    constant DEFAULT_JUMP_NEXT : std_logic := '1';
+    variable conditional_v : std_logic;
   begin
-    state_v   := state_r;
-    code_v    := bram_code;
-    control_v := DEFAULT_PROGRAM_WORD_RT;
-    bram_en_v    := '0';
+    -- WARNING CHECK default !
+    state_v        := state_r;
+    code_v         := bram_code;
+    control_v      := DEFAULT_PROGRAM_WORD_RT;
+    bram_en_v      := CFALSE;
     bram_address_v := std_logic_vector(to_unsigned(0,NB_BITS_PROGRAM_ADDR));
+    jump_address   := std_logic_vector(to_unsigned(0,NB_BITS_PROGRAM_ADDR));
+    conditional_v  := CFALSE;
+    -- SUPPRESS for debug
+    jump_cond_c    <= (others=>'0');
+    default_jump_bit_d <= 'U';
+
     case state_v.activation_status is
       when IDLE =>
         if go='1' then
@@ -79,13 +96,29 @@ begin
           bram_address_v := std_logic_vector(to_unsigned(0,NB_BITS_PROGRAM_ADDR));
         end if;
       when RUNNING =>
-        if code_v(POS_BIT_DONE)='1' then
+        control_v := bits_to_symbolic_control(code_v);
+        if control_v.done='1' then
           state_v.activation_status := IDLE;
           state_v.done := CTRUE;
         else
-          control_v := bits_to_symbolic_control(code_v);
+          conditional_v := control_v.conditional;
+          if conditional_v='1' then
+            report "COND !";
+            jump_cond := (control_v.status_mask and status) ;
+            default_jump_bit := control_v.jump_default;
+            if jump_cond /= STATUS_ZERO then
+              state_v.address_state := to_unsigned(control_v.jump_address,NB_BITS_PROGRAM_ADDR);
+            else
+              if default_jump_bit=DEFAULT_JUMP_NEXT then
+                state_v.address_state := state_v.address_state + 1;
+              end if;
+            end if;
+          else
+            report "unconditional jump";
+            state_v.address_state := to_unsigned(control_v.jump_address,NB_BITS_PROGRAM_ADDR);
+          end if;
           bram_en_v    := '1';
-          bram_address_v := std_logic_vector(to_unsigned(0,NB_BITS_PROGRAM_ADDR));
+          bram_address_v := std_logic_vector(state_v.address_state);
         end if;
       when others =>
         null;
@@ -95,7 +128,12 @@ begin
     control_c      <= control_v;
     bram_en_c      <= bram_en_v;
     bram_address_c <= bram_address_v;
+    jump_address_c <= jump_address;
 
+    -- FOR DEBUG only / SUPPRESS FOR SYNTHESIS !!!!!
+    jump_cond_c    <= jump_cond;
+    status_mask_c  <= control_v.status_mask;
+    default_jump_bit_d <= default_jump_bit;
   end process;
 
   bram_en      <= bram_en_c;

@@ -168,7 +168,8 @@ package config_package is
   constant NB_BITS_FOR_OP : natural := integer(ceil(log2(real(NB_OPS_DEFINED))));
   constant SINGLE_ALU_CONTROL_SIZE : natural := NB_BITS_FOR_OP + integer(ceil(log2(real(NB_REGS))))*3;
 
-  constant NB_BITS_PROGRAM_WORD : natural := NB_STATUS_BITS + NB_BITS_PROGRAM_ADDR +
+  constant NB_BITS_PROGRAM_WORD : natural := 1 + --conditional or not
+                                             NB_STATUS_BITS + NB_BITS_PROGRAM_ADDR +
                                              1 +  -- done
                                              1 +  -- next default
                                              NB_ALUS*SINGLE_ALU_CONTROL_SIZE +
@@ -181,6 +182,7 @@ package config_package is
   constant POS_BIT_DONE : natural := NB_BITS_PROGRAM_WORD - (NB_STATUS_BITS + NB_BITS_PROGRAM_ADDR + 1);
 
   type program_word_rt is record
+    conditional  : std_logic;
     status_mask  : std_logic_vector(NB_STATUS_BITS-1 downto 0);
     jump_address : natural range 0 to NB_STATES-1;
     done         : std_logic;
@@ -190,6 +192,7 @@ package config_package is
 
   constant DEFAULT_PROGRAM_WORD_RT : program_word_rt :=
     (
+      conditional  => '0',
       status_mask  => (others=>'0'),
       jump_address => 0,
       done         => '0',
@@ -213,8 +216,8 @@ package config_package is
       1 => (from_reg => "1000") --O1 <= R3
     ),
     status_bits => (
-      0 =>  (reg => 0, pos => 0),
-      1 =>  (reg => 1, pos => 0)
+      0 =>  (reg => 2, pos => 0),
+      1 =>  (reg => 3, pos => 0)
     ),
     alu => (
       --     NOP, ADD SUB MUL DIV MOD OR_ AND XOR NOT EQ_ NEQ GT_ GTE
